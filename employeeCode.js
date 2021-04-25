@@ -1,5 +1,6 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
+const chalk = require('chalk');
 
 const connection = mysql.createConnection({
   host: 'localhost',
@@ -27,7 +28,7 @@ const menu = () => {
                 name:'options',
                 type:'list',
                 message:'What would you like to do?',
-                choices: ['View Employees','View Employees by departments','View Employees by Manager', 'Add Employee', 'View Roles']
+                choices: ['View Employees','Add Employee', 'View Roles', 'Add Department', 'Add role', 'View Departments']
             },
         ])
         .then((answer) => {
@@ -37,12 +38,12 @@ const menu = () => {
                     viewEmployees();
                     break;
 
-                case 'View Employees by departments':
+                case 'View Departments':
                     viewDepartment();
                     break;
 
-                case 'View Employees by Manager':
-                    viewManager();
+                case 'Add Department':
+                    addDepartment();
                     break;
 
                 case 'Add Employee':
@@ -51,6 +52,10 @@ const menu = () => {
 
                 case 'View Roles':
                     viewRoles();
+                    break;
+
+                case 'Add Role':
+                    addRole();
                     break;
             }
         });
@@ -86,6 +91,33 @@ const viewRoles = () => {
         
     });
 };
+//--Empty array holding all title of roles
+let rolesArray = [];
+// function to view all roles
+function pickRole() {
+    connection.query('SELECT * FROM role', function(err, res) {
+        if(err) throw (err)
+        for (let i = 0; i < res.length; i++) {
+            rolesArray.push(res[i].title);
+            
+        }
+    })
+    return rolesArray;
+}
+
+//-Empty array that holds the first name of managers
+var managersArray = [];
+// function to view the names of all the managers
+function pickManager() {
+  connection.query("SELECT first_name, last_name FROM employee WHERE manager_id IS NULL", function(err, res) {
+    if (err) throw err
+    for (let i = 0; i < res.length; i++) {
+      managersArray.push(res[i].first_name);
+    }
+
+  })
+  return managersArray;
+}
 
 
 const addEmployees = () => {
@@ -102,22 +134,33 @@ const addEmployees = () => {
                 message: 'What is your new employees last name?'
             },
             {
-                name: 'roleId',
-                type: 'input',
-                message: 'What is your new employees role id?'
+                name: 'role',
+                type: 'list',
+                message: 'What is your new employees role ?',
+                choices: pickRole()
             },
             {
-                name: 'managerId',
-                type: 'input',
-                message: 'What is your new employees manager id?'
+                name: 'manager',
+                type: 'rawlist',
+                message: 'Who is your new employees manager?',
+                choices: pickManager()
             },
         ])
         .then((answer) => {
             console.log('Adding Employee...');
-            const query = 'INSERT first_name, last_name, role_id, manager_id INTO employee'
-            connection.query(query, {first_name: answer.first, last_name: answer.last, role_id: answer.roleId, manager_id: answer.managerId}, (err, data) => {
+            let roleId = pickRole().indexOf(answer.role) + 1
+            let managerId = pickManager().indexOf(answer.manager) + 1
+            connection.query('INSERT INTO employee SET ?', 
+            {
+                first_name: answer.first, 
+                last_name: answer.last, 
+                role_id: roleId, 
+                manager_id: managerId, 
+                
+            }, 
+                (err) => {
                 if(err) throw err;
-                console.table(data);
+                console.table(answer);
                 menu();
                
             });
