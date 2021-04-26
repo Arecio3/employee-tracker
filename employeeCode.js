@@ -131,7 +131,7 @@ function pickManager() {
         if (err) throw err
         for (let i = 0; i < res.length; i++) {
             managersArray.push(res[i].first_name + " " + res[i].last_name);
-            
+
         }
     })
     return managersArray;
@@ -141,78 +141,81 @@ const addRole = () => {
     connection.query("SELECT * FROM role", (err, res) => {
         if (err) throw err;
         inquirer
-        .prompt([
-            {
-                name: 'title',
-                type: 'input',
-                message: 'What is the title of your role?',
-                validate: data => {
-                    if (data !== "") {
-                        return true
+            .prompt([
+                {
+                    name: 'title',
+                    type: 'input',
+                    message: 'What is the title of your role?',
+                    validate: data => {
+                        if (data !== "") {
+                            return true
+                        }
+                        return "Please enter a title."
                     }
-                    return "Please enter a title."
-                }
-            },
-            {
-                name: 'salary',
-                type: 'input',
-                message: 'What is the salary of your new role?',
-                validate: data => {
-                    if (data !== "") {
-                        return true
+                },
+                {
+                    name: 'salary',
+                    type: 'input',
+                    message: 'What is the salary of your new role?',
+                    validate: data => {
+                        if (data !== "") {
+                            return true
+                        }
+                        return "Please enter a title."
                     }
-                    return "Please enter a title."
-                }
-            },
-            {
-                name: 'department',
-                type: 'list',
-                message: 'What is the department of your new role?',
-                choices: getDepartment()
-                
-            },
-        ])
-        .then((answer) => {
-            console.log("Adding new role....");
-            let departmentId = getDepartment().indexOf(answer.department) + 1
-            let newRole = { title: answer.title, salary: answer.salary, department_id: departmentId }
-            connection.query('INSERT INTO role SET ?', newRole, function (err, data) {
-                if (err) throw err;
-                viewRoles();
-            
+                },
+                {
+                    name: 'department',
+                    type: 'list',
+                    message: 'What is the department of your new role?',
+                    choices: getDepartment()
 
-        });
+                },
+            ])
+            .then((answer) => {
+                console.log("Adding new role....");
+                let departmentId = getDepartment().indexOf(answer.department) + 1
+                let newRole = { title: answer.title, salary: answer.salary, department_id: departmentId }
+                connection.query('INSERT INTO role SET ?', newRole, function (err, data) {
+                    if (err) throw err;
+                    viewRoles();
+
+
+                });
+            });
     });
-});
 }
 
 
 const addDepartment = () => {
-   
+    connection.query('SELECT * FROM department', (err, res) => {
+        if (err) throw err;
+        console.table(res);
         inquirer
-        .prompt([
-            {
-                name: 'title',
-                type: 'input',
-                message: 'What is the title of your department?',
-                validate: data => {
-                    if (data !== "") {
-                        return true
+            .prompt([
+                {
+                    name: 'title',
+                    type: 'input',
+                    message: 'What is the title of your department?',
+                    validate: data => {
+                        if (data !== "") {
+                            return true
+                        }
+                        return "Please enter a title."
                     }
-                    return "Please enter a title."
-                }
-            },
-    
-        ])
-        .then((answer) => {
-            console.log("Adding new department....");
-            let newDepartment = { name: answer.title, }
-            connection.query('INSERT INTO department SET ?', newDepartment, function (err, data) {
-                if (err) throw err;
-                viewDepartment();
-            
+                },
 
-        });
+            ])
+            .then((answer) => {
+                console.log("Adding new department....");
+                let newDepartment = { name: answer.title, }
+                connection.query('INSERT INTO department SET ?', newDepartment, function (err, data) {
+                    if (err) throw err;
+                    viewDepartment();
+
+
+                });
+            });
     });
 }
 
@@ -272,7 +275,7 @@ const updateRole = () => {
         inquirer
             .prompt([
                 {
-                    
+
                 }
             ])
     })
