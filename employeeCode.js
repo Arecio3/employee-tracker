@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const util = require('util');
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -15,11 +16,11 @@ const connection = mysql.createConnection({
     password: '2893445Ya',
     database: 'employee_trackerDB',
 });
-
 connection.connect((err) => {
     if (err) throw err;
     menu();
 });
+connection.query = util.promisify(connection.query);
 
 const menu = () => {
     inquirer
@@ -28,7 +29,7 @@ const menu = () => {
                 name: 'options',
                 type: 'list',
                 message: 'What would you like to do?',
-                choices: ['View Employees', 'Add Employee', 'View Roles', 'Add Department', 'Add Role', 'View Departments', 'Update Employee Roles', 'Exit']
+                choices: ['View Employees', 'Add Employee', 'View Roles', 'Add Department', 'Add Role', 'View Departments', 'Update Employee Roles', 'Delete Department', 'Delete Roles', 'Delete Employees', 'Exit']
             },
         ])
         .then((answer) => {
@@ -46,12 +47,12 @@ const menu = () => {
                     addDepartment();
                     break;
 
-                case 'Add Employee':
+                case 'Add Employees':
                     addEmployees();
                     break;
 
                 case 'View Roles':
-                    viewRoles();
+                    deleteRoles();
                     break;
 
                 case 'Add Role':
@@ -60,6 +61,18 @@ const menu = () => {
 
                 case 'Update Employee Roles':
                     updateRole();
+                    break;
+
+                case 'Delete Department':
+                    deleteDepartment();
+                    break;
+
+                case 'Delete Roles':
+                    deleteRoles();
+                    break;
+
+                case 'Delete Employees':
+                    deleteEmployees();
                     break;
 
                 case 'Exit':
@@ -100,11 +113,6 @@ const viewRoles = () => {
     });
 };
 
-
-
-
-
-
 let departmentArr = [];
 
 const getDepartment = () => {
@@ -132,6 +140,19 @@ function pickRole() {
     })
     return rolesArray;
 }
+
+
+let updatedRole = [];
+const getRoles = () => {
+    connection.query('SELECT * FROM role', (err, res) => {
+        if (err) throw err;
+        res.forEach(({ title, id }) => {
+            updatedRole.push({ name: title, value: id });
+        });
+
+    });
+    return updatedRole;
+};
 
 
 //-Empty array that holds the first name of managers
@@ -282,17 +303,6 @@ const addEmployees = () => {
         })
 };
 
-let updatedRole = [];
-const getRoles = () => {
-    connection.query('SELECT * FROM role', (err, res) => {
-        if (err) throw err;
-        res.forEach(({ title, id }) => {
-            updatedRole.push({ name: title, value: id });
-        });
-
-    });
-    return updatedRole;
-};
 const updateRole = () => {
     connection.query('SELECT * FROM employee', (err, res) => {
         if (err) throw err;
@@ -326,3 +336,95 @@ const updateRole = () => {
             })
     })
 }
+
+
+const deleteDepo = async () => {
+    let res = await connection.query('SELECT * FROM department')
+    return res.map(departments => {
+        return {
+            name: departments.name,
+            value: departments.id
+        }
+    }); 
+};
+
+const deleteDepartment = () => {
+        inquirer
+            .prompt([
+               {
+                type: 'list',
+                name: 'deleteDep',
+                message: 'What Departmment would you like to delete?',
+                choices: () => deleteDepo()
+               },
+            ]).then((answer) => {
+                
+                connection.query('DELETE FROM department WHERE id = ?', answer.deleteDep, (err, data) => {
+                    if (err) throw err;
+                    viewDepartment();
+                
+                })
+            })
+}  
+
+const deleteEmpo = async () => {
+    let res = await connection.query('SELECT * FROM employee');
+    let employeeArray = res.map((employees) => {
+        return {
+            name: `${employees.first_name} ${employees.last_name}`,
+            value: employees.id
+        };
+    }); 
+    console.log(employeeArray);
+    return employeeArray;
+}
+
+const deleteEmployees = () => {
+        inquirer
+            .prompt([
+               {
+                type: 'list',
+                name: 'deleteEmp',
+                message: 'What Employees would you like to delete?',
+                choices: () => deleteEmpo()
+               },
+            ]).then((answer) => {
+                
+                connection.query('DELETE FROM employee WHERE id = ?', answer.deleteEmp, (err, data) => {
+                    if (err) throw err;
+                    viewEmployees();
+                
+                })
+            })
+}  
+
+const deleteRole = async () => {
+    let res = await connection.query('SELECT * FROM role');
+    let roleArray = res.map((roles) => {
+        return {
+            name: roles.title,
+            value: roles.id
+        };
+    }); 
+    console.log(roleArray);
+    return roleArray;
+}
+
+const deleteRoles = () => {
+    inquirer
+        .prompt([
+           {
+            type: 'list',
+            name: 'deleteRole',
+            message: 'What Roles would you like to delete?',
+            choices: () => deleteRole()
+           },
+        ]).then((answer) => {
+            
+            connection.query('DELETE FROM role WHERE id = ?', answer.deleteRole, (err, data) => {
+                if (err) throw err;
+                viewRoles();
+            
+            })
+        })
+}  
