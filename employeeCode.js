@@ -20,8 +20,11 @@ connection.connect((err) => {
     if (err) throw err;
     menu();
 });
+
+// allows use of ascync await functionality
 connection.query = util.promisify(connection.query);
 
+// first set of questions
 const menu = () => {
     inquirer
         .prompt([
@@ -29,71 +32,78 @@ const menu = () => {
                 name: 'options',
                 type: 'list',
                 message: 'What would you like to do?',
-                choices: ['View Employees', 'Add Employee', 'View Roles', 'Add Department', 'Add Role', 'View Departments', 'Update Employee Roles', 'Delete Department', 'Delete Roles', 'Delete Employees', 'Exit']
+                choices: [(chalk.green('View Employees')), 'Update Employee by Manager', (chalk.blue('Add Employee')), (chalk.green('View Roles')), (chalk.blue('Add Department')), (chalk.blue('Add Role')), (chalk.green('View Departments')), (chalk.yellow('Update Employee Roles')), (chalk.red('Delete Department')), (chalk.red('Delete Roles')), (chalk.red('Delete Employees')), (chalk.whiteBright('Exit'))]
             },
         ])
         .then((answer) => {
             console.log(answer.options);
             switch (answer.options) {
-                case 'View Employees':
+                case (chalk.green('View Employees')):
                     viewEmployees();
                     break;
 
-                case 'View Departments':
+                case (chalk.green('View Departments')):
                     viewDepartment();
                     break;
 
-                case 'Add Department':
+                case 'Update Employee by Manager':
+                    employeeByMan();
+                    break;
+
+                case (chalk.blue('Add Department')):
                     addDepartment();
                     break;
 
-                case 'Add Employees':
+                case (chalk.blue('Add Employee')):
                     addEmployees();
                     break;
 
-                case 'View Roles':
+                case (chalk.green('View Roles')):
                     deleteRoles();
                     break;
 
-                case 'Add Role':
+                case (chalk.blue('Add Role')):
                     addRole();
                     break;
 
-                case 'Update Employee Roles':
+                case (chalk.yellow('Update Employee Roles')):
                     updateRole();
                     break;
 
-                case 'Delete Department':
+                case (chalk.red('Delete Department')):
                     deleteDepartment();
                     break;
 
-                case 'Delete Roles':
+                case (chalk.red('Delete Roles')):
                     deleteRoles();
                     break;
 
-                case 'Delete Employees':
+                case (chalk.red('Delete Employees')):
                     deleteEmployees();
                     break;
 
-                case 'Exit':
-                    console.log('Goodbye');
+                case (chalk.whiteBright('Exit')):
+                    console.log(chalk.blue('Goodbye'));
                     connection.end();
             }
         });
 };
 
+// function for viewing all employees
 const viewEmployees = () => {
-    console.log('Retrieving all Employees...');
+    console.log('Employees...');
+    // selects everything from employee table
     connection.query('SELECT * FROM employee', (err, data) => {
         if (err) throw err;
         console.table(data);
         menu();
-
     });
 };
 
+// for viewing all departments
 const viewDepartment = () => {
-    console.log('Retrieving all departments...');
+    console.log('Departments...');
+    // selects all names from department table
     connection.query('SELECT name FROM department', (err, data) => {
         if (err) throw err;
         console.table(data);
@@ -102,9 +112,10 @@ const viewDepartment = () => {
     });
 };
 
-
+// for viewing all the roles
 const viewRoles = () => {
     console.log('Retrieving all roles...');
+    // selects 
     connection.query('SELECT title, salary FROM role', (err, data) => {
         if (err) throw err;
         console.table(data);
@@ -173,6 +184,7 @@ function pickManager() {
 
 const addRole = () => {
     connection.query("SELECT * FROM role", (err, res) => {
+        console.table(res)
         if (err) throw err;
         inquirer
             .prompt([
@@ -257,6 +269,9 @@ const addDepartment = () => {
 
 
 const addEmployees = () => {
+    connection.query('SELECT * FROM employee', (err, res) => {
+        if (err) throw err;
+        console.table(res);
     inquirer
         .prompt([
             {
@@ -273,13 +288,13 @@ const addEmployees = () => {
                 name: 'role',
                 type: 'list',
                 message: 'What is your new employees role ?',
-                choices: pickRole()
+                choices: pickRole(),
             },
             {
                 name: 'manager',
                 type: 'rawlist',
                 message: 'Who is your new employees manager?',
-                choices: pickManager()
+                choices: pickManager(),
             },
         ])
         .then((answer) => {
@@ -300,7 +315,7 @@ const addEmployees = () => {
                     menu();
 
                 });
-        })
+       })   })
 };
 
 const updateRole = () => {
@@ -337,7 +352,8 @@ const updateRole = () => {
     })
 }
 
-
+//This creates an array of objects containing the currrent departments
+//and pairs them with the department id to be used in the prompt and query.
 const deleteDepo = async () => {
     let res = await connection.query('SELECT * FROM department')
     return res.map(departments => {
@@ -427,4 +443,36 @@ const deleteRoles = () => {
             
             })
         })
-}  
+}
+
+const employeeByMan = async () => {
+    connection.query('SELECT * FROM employee', (err, res) => {
+        if (err) throw err;
+        inquirer.prompt([
+            {
+                type: 'list',
+                name: 'manager',
+                message: "Which Manager's employees would you like to view",
+                choices() {
+                    const choiceArray = [];
+
+                    res.forEach(({first_name, last_name, id, manager_id}) => {
+                        if(!manager_id) {
+                            choiceArray.push({ name: first_name + " " + last_name, value: id});
+                        }
+                    })
+                    return choiceArray;
+                }
+            }
+        ]).then((answer) => {
+            connection.query('SELECT * FROM employee WHERE manager_id = ?', [answer.manager], function (err, res) {
+                if (err) throw err;
+                    console.table(res)
+                    menu();
+            })
+        })
+    })
+}
+
+
+
