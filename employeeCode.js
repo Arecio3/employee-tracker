@@ -59,7 +59,7 @@ const menu = () => {
                     break;
 
                 case (chalk.green('View Roles')):
-                    deleteRoles();
+                    viewRoles();
                     break;
 
                 case (chalk.blue('Add Role')):
